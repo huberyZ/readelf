@@ -296,8 +296,96 @@ void show_elf_symbal(char *data)
         printf("\n");
 
         sym++;
-    }
+	}
 
+}
+
+void show_elf_program(char *data)
+{
+	Elf_Ehdr *ehdr = (Elf_Ehdr *)data;
+	Elf_Phdr *phdr = (Elf_Phdr *)(data + ehdr->e_phoff);
+
+	int i;
+	printf("There are %d program headers, starting at offset %lld\n", ehdr->e_phnum, ehdr->e_phoff);
+	printf("Program Headers:\n");
+	printf("%-18s %-18s %-18s %-18s\n%-18s %-18s %-18s %-10s %-10s\n", "Type", "Offset", "VirtAddr", "PhysAddr", "", "FileSize", "MemSize", "Flags", "Align");
+	for (i = 0; i < ehdr->e_phnum; i++) {
+		switch(phdr->p_type) {
+			case PT_NULL:
+				printf("%-18s", "NULL");
+				break;
+			case PT_LOAD:
+				printf("%-18s", "LOAD");
+				break;
+			case PT_DYNAMIC:
+				printf("%-18s", "DYNAMIC");
+				break;
+			case PT_INTERP:
+				printf("%-18s", "INTERP");
+				break;
+			case PT_NOTE:
+				printf("%-18s", "NOTE");
+				break;
+			case PT_SHLIB:
+				printf("%-18s", "SHLIB");
+				break;
+			case PT_PHDR:
+				printf("%-18s", "PHDR");
+				break;
+			case PT_TLS:
+				printf("%-18s", "TLS");
+				break;
+			case PT_LOOS:
+				printf("%-18s", "LOOS");
+				break;
+			case PT_HIOS:
+				printf("%-18s", "HIOS");
+				break;
+			case PT_LOPROC:
+				printf("%-18s", "LOPROC");
+				break;
+			case PT_HIPROC:
+				printf("%-18s", "HIPROC");
+				break;
+			case PT_GNU_EH_FRAME:
+				printf("%-18s", "GNU_EH_FRAME");
+				break;
+			case PT_GNU_STACK:
+				printf("%-18s", "GNU_STACK");
+				break;
+			default:
+				printf("%-18s", "UNKNOW");
+				break;
+		}
+		printf(" 0x%016llx 0x%016llx 0x%016llx\n", phdr->p_offset, phdr->p_vaddr, phdr->p_paddr);
+		printf("%-18s 0x%016llx 0x%016llx ", "", phdr->p_filesz, phdr->p_memsz);
+		
+		switch(phdr->p_flags) {
+			case PF_R:
+				printf("%-10s", "R");
+				break;
+			case PF_W:
+				printf("%-10s", "W");
+				break;
+			case PF_X:
+				printf("%-10s", "X");
+				break;
+			case PF_R|PF_W:
+				printf("%-10s", "RW");
+				break;
+			case PF_R|PF_X:
+				printf("%-10s", "R X");
+				break;
+			case PF_W|PF_X:
+				printf("%-10s", " WX");
+				break;
+		}
+	
+		printf(" 0x%-10llx\n", phdr->p_align);
+		phdr++;
+	}
+	printf("\n\nSection to Segment mapping:\n");
+	printf("Segment Sections...\n");
 }
 
 int main(int argc, char *argv[])
@@ -363,6 +451,10 @@ int main(int argc, char *argv[])
                 break;
             case 's':
                 show_elf_symbal(data);
+				break;
+            case 'l':
+                show_elf_program(data);
+				break;
             default:
                 break;
         }
