@@ -388,6 +388,169 @@ void show_elf_program(char *data)
 	printf("Segment Sections...\n");
 }
 
+void show_elf_dynamic(char *data)
+{
+    Elf_Ehdr *ehdr = (Elf_Ehdr*)data;
+    Elf_Phdr *phdr = (Elf_Phdr*)(data + ehdr->e_phoff);
+    Elf_Dyn *dyn = NULL;
+    int dynNum = 0;
+
+    int i;
+    for (i = 0; i < ehdr->e_phnum; i++) {
+        if (phdr->p_type == PT_DYNAMIC) {
+            dyn = (Elf_Dyn*)(data + phdr->p_offset);
+            printf("filesize: %d, memsz: %d\n", phdr->p_filesz, phdr->p_memsz);
+            dynNum = phdr->p_filesz / sizeof(Elf_Dyn);
+            break;
+        }
+        phdr++;
+    }
+
+    if (dyn == NULL) {
+        printf("no dynamic.\n");
+        return;
+    }
+
+    printf("Dynamic section at offset 0x%x contains %d entries:\n", phdr->p_offset, dynNum);
+    printf("%-18s %-20s %s\n", "Tag", "Type", "Name/Value");
+    
+    char *strtab = NULL;
+    Elf_Dyn *dyn_p = dyn;
+    for (i = 0; i < dynNum; i++) {
+        if (dyn_p->d_tag == DT_STRTAB) {
+            printf("strtab offset: %d\n", dyn_p->d_un.d_ptr);
+            strtab = data + dyn_p->d_un.d_ptr;
+        }
+        dyn_p++;
+    }
+
+    for (i = 0; i < dynNum; i++) {
+        switch(dyn->d_tag) {
+            case DT_NULL:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "NULL", dyn->d_un.d_val);
+                break;
+
+            case DT_NEEDED:
+                printf("0x%-018x %-20s Shared library: [%s]\n", dyn->d_tag, "NEEDED", strtab + dyn->d_un.d_val);
+                break;
+
+            case DT_PLTRELSZ:
+                printf("0x%-018x %-20s %d(bytes)\n", dyn->d_tag, "PLTRELSZ", dyn->d_un.d_val);
+                break;
+
+            case DT_PLTGOT:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "PLTGOT", dyn->d_un.d_ptr);
+                break;
+
+            case DT_HASH:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "HASH", dyn->d_un.d_ptr);
+                break;
+
+            case DT_STRTAB:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "STRTAB", dyn->d_un.d_ptr);
+                break;
+
+            case DT_SYMTAB:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "SYMTAB", dyn->d_un.d_ptr);
+                break;
+
+            case DT_RELA:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "RELA", dyn->d_un.d_ptr);
+                break;
+
+            case DT_RELASZ:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "RELASZ", dyn->d_un.d_val);
+                break;
+
+            case DT_RELAENT:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "RELAENT", dyn->d_un.d_val);
+                break;
+
+            case DT_STRSZ:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "STRSZ", dyn->d_un.d_val);
+                break;
+
+            case DT_SYMENT:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "SYMENT", dyn->d_un.d_val);
+                break;
+
+            case DT_INIT:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "INIT", dyn->d_un.d_ptr);
+                break;
+
+            case DT_FINI:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "FINI", dyn->d_un.d_ptr);
+                break;
+
+            case DT_SONAME:
+                printf("0x%-018x %-20s so name: [%s]\n", dyn->d_tag, "SONAME", strtab + dyn->d_un.d_val);
+                break;
+
+            case DT_RPATH:
+                printf("0x%-018x %-20s rpath: [%s]\n", dyn->d_tag, "RPATH", strtab + dyn->d_un.d_val);
+                break;
+
+            case DT_REL:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "REL", dyn->d_un.d_ptr);
+                break;
+
+            case DT_RELSZ:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "RELSZ", dyn->d_un.d_val);
+                break;
+
+            case DT_RELENT:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "RELENT", dyn->d_un.d_val);
+                break;
+
+            case DT_PLTREL:
+                printf("0x%-018x %-20s %d\n", dyn->d_tag, "PLTREL", dyn->d_un.d_val);
+                break;
+
+            case DT_DEBUG:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "DEBUG", dyn->d_un.d_ptr);
+                break;
+
+            case DT_JMPREL:
+                printf("0x%-018x %-20s 0x%x\n", dyn->d_tag, "JMPREL", dyn->d_un.d_ptr);
+                break;
+        }
+        dyn++;
+    }
+}
+
+void show_elf_relocation(char *data)
+{
+    Elf_Ehdr *ehdr = (Elf_Ehdr *)data;
+    Elf_Shdr *shdr = (Elf_Shdr *)(data + ehdr->e_shoff);
+    Elf_Rel *rel = NULL;
+    Elf_Rela *rela = NULL;
+    int relNum = 0;
+    int relaNum = 0;
+
+    int i;
+    for (i = 0; i < ehdr->e_shnum; i++) {
+        if (shdr->sh_type == SHT_RELA) {
+            rela = (Elf_Rela *)(data + shdr->sh_offset);
+            relaNum = shdr->sh_size / sizeof(Elf_Rela);
+        }
+        if (shdr->sh_type == SHT_REL) {
+            rel = (Elf_Rel *)(data + shdr->sh_offset);
+            relNum = shdr->sh_size / sizeof(Elf_Rel);
+        }
+        if (rela != NULL && rel != NULL) {
+            break;
+        }
+    }
+
+    if (rela != NULL) {
+    
+    }
+
+    if (rel != NULL) {
+    
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
@@ -440,7 +603,6 @@ int main(int argc, char *argv[])
     }
 
     for (i = 1; i < strlen(comm); i++) {
-        printf("cmd: %c.\n", comm[i]);
         cmd = comm[i];
         switch(cmd) {
             case 'h':
@@ -454,6 +616,12 @@ int main(int argc, char *argv[])
 				break;
             case 'l':
                 show_elf_program(data);
+				break;
+            case 'd':
+                show_elf_dynamic(data);
+				break;
+            case 'r':
+                show_elf_relocation(data);
 				break;
             default:
                 break;
